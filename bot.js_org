@@ -6,19 +6,28 @@
 // Import required Bot Builder
 const { ActivityTypes, CardFactory } = require('botbuilder');
 const { LuisRecognizer } = require('botbuilder-ai');
-//const { DialogSet, DialogTurnStatus } = require('botbuilder-dialogs');
-const { ChoicePrompt, DialogSet, DialogTurnStatus, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+const { DialogSet, DialogTurnStatus } = require('botbuilder-dialogs');
 
+/* Kwangho
+const { DialogSet, TextPrompt, WaterfallDialog } = require("botbuilder-dialogs");
+const DIALOG_STATE_PROPERTY = 'dialogState';
 const TEXT_PROMPT = 'textPrompt';
 const MAIN_DIALOG = 'mainDialog';
+const { ActivityTypes } = require('botbuilder');
+const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+*/
 
 const { UserProfile } = require('./dialogs/greeting/userProfile');
-const { GreetingDialog } = require('./dialogs/greeting');
 const { WelcomeCard } = require('./dialogs/welcome');
+const { GreetingDialog } = require('./dialogs/greeting');
 
+// Greeting Dialog ID
 const GREETING_DIALOG = 'greetingDialog';
+
+// State Accessor Properties
 const DIALOG_STATE_PROPERTY = 'dialogState';
 const USER_PROFILE_PROPERTY = 'userProfileProperty';
+
 // LUIS service type entry as defined in the .bot file.
 const LUIS_CONFIGURATION = 'BasicBotLuisApplication';
 
@@ -31,14 +40,8 @@ const NONE_INTENT = 'None';
 const CADENCE_SOLUTION = 'Cadence_Solution';
 const CADENCE_TIP = 'Cadence_Tips';
 
-const SOLUTION_ISSUE = 'solution_issue';
-const SOLUTION_ISSUE_PROPERTY = 'solution';
-const OPERATION_PROMPT = 'operation_prompt';
-const TOOL_PROMPT = 'tool_prompt';
-const SOLUTION_MESSAGE_C_PROMPT = 'confirm_prompt';
-const SOLUTION_MESSAGE_1_PROMPT = 'message1_prompt';
-const SOLUTION_MESSAGE_2_PROMPT = 'message2_prompt';
 
+// Supported LUIS Entities, defined in ./dialogs/greeting/resources/greeting.lu
 const USER_NAME_ENTITIES = ['userName', 'userName_patternAny'];
 const USER_LOCATION_ENTITIES = ['userLocation', 'userLocation_patternAny'];
 
@@ -77,40 +80,18 @@ class BasicBot {
             // CAUTION: Its better to assign and use a subscription key instead of authoring key here.
             endpointKey: luisConfig.authoringKey
         });
-        this.conversationState = conversationState;
-        this.userState = userState;   
+
         // Create the property accessors for user and conversation state
         this.userProfileAccessor = userState.createProperty(USER_PROFILE_PROPERTY);
         this.dialogState = conversationState.createProperty(DIALOG_STATE_PROPERTY);
-  
 
         // Create top-level dialog(s)
         this.dialogs = new DialogSet(this.dialogState);
         // Add the Greeting dialog to the set
         this.dialogs.add(new GreetingDialog(GREETING_DIALOG, this.userProfileAccessor));
- 
-        this.userSolution = userState.createProperty(SOLUTION_ISSUE_PROPERTY);
-        this.dialogs.add(new TextPrompt(OPERATION_PROMPT));
-        this.dialogs.add(new TextPrompt(TOOL_PROMPT));
-        this.dialogs.add(new TextPrompt(SOLUTION_MESSAGE_1_PROMPT));
-        this.dialogs.add(new TextPrompt(SOLUTION_MESSAGE_2_PROMPT));
-        this.dialogs.add(new ChoicePrompt(SOLUTION_MESSAGE_C_PROMPT));
-        this.dialogs.add(new WaterfallDialog(SOLUTION_ISSUE, [
-            this.promptMessageNum1.bind(this),
-            this.promptTool.bind(this),
-            this.promptOperation.bind(this),
-            this.promptMessageNum2.bind(this),
-            this.promptMessageNum3.bind(this)
-            
-        ]));
 
-/*        
-        
-        // Create a dialog that displays a user name after it has been collected.
-        this.dialogs.add(new WaterfallDialog(SOLUTION_COMFIRM, [
-            this.displayIssue.bind(this)
-        ]));
-        */
+        this.conversationState = conversationState;
+        this.userState = userState;   
     }
 
     /**
@@ -139,7 +120,7 @@ class BasicBot {
             // This could be user responding with their name or city while we are in the middle of greeting dialog,
             // or user saying something like 'i'm {userName}' while we have no active multi-turn dialog.
             await this.updateUserProfile(results, context);
-            
+
             // Based on LUIS topIntent, evaluate if we have an interruption.
             // Interruption here refers to user looking for help/ cancel existing dialog
             const interrupted = await this.isTurnInterrupted(dc, results);
@@ -165,19 +146,13 @@ class BasicBot {
                         await dc.beginDialog(GREETING_DIALOG);
                         break;
                     case CADENCE_SOLUTION: 
-                        //await dc.beginDialog(SOLUTION_DIALOG);
-                        let Solution_result;
-                        Solution_result = JSON.stringify(results);
-                        //await context.sendActivity(`"Greetings from sample message ${ Solution_result}.`);
-                        await dc.beginDialog(SOLUTION_ISSUE);
-
-                        //await context.sendActivity("Greetings from sample message.");
-                       // await dc.context.sendActivity(`Oh~ You got an ${JSON.stringify(results.entities.Cadence_Messages[0])} !! 
-                       // \n Do you have the ${JSON.stringify( results.entities.Cadence_Messages[0] )} number?`);
-
-
+                        await dc.context.sendActivity(`4. ${JSON.stringify( results.entities.keyPhrase[0])}`);
+                        await dc.context.sendActivity(`${JSON.stringify(results.keyPhrase)} ? 
+                        \n Do you have the ${JSON.stringify( results.entities.keyPhrase )} number?`);
                         //await dc.context.sendActivity(`Solution intent found, entities included:\n ${JSON.stringify(results.entities)}`);
-                        
+                        await dc.context.sendActivity(`2. ${JSON.stringify( luisResult )}`);
+                        await dc.context.sendActivity(`3. ${JSON.stringify( LuisResults )}`);
+                        await dc.context.sendActivity(`4. ${JSON.stringify( results.intents.Cadence_Solution.score )}`);
                         break;
                     case CADENCE_TIP: 
                         await dc.context.sendActivity(`Tip Line 1st `);
@@ -290,43 +265,6 @@ class BasicBot {
             // set the new values
             await this.userProfileAccessor.set(context, userProfile);
         }
-    }
-    async promptMessageNum1(step) {
-        //await this.userSolution.set(step.context, solution);
-        return await step.prompt(SOLUTION_MESSAGE_C_PROMPT, `Oh~ I see , \n Do you know the Error specific number?`, ['yes', 'no']);
-    }
-    async promptMessageNum2(step) {
-        const solution = await this.userSolution.get(step.context, {});
-        solution.num1 = step.result;
-        if (step.result && solution.num1.value === 'yes') {
-            return await step.prompt(SOLUTION_MESSAGE_1_PROMPT, `What is the number? \n I will search the database regarding the number`);
-        }
-    }
-    async promptMessageNum3(step) {
-        const solution = await this.userSolution.get(step.context, {});
-        solution.num2 = step.result;
-        if (solution.num2 && solution.num1.value === 'yes') {
-            await step.prompt(SOLUTION_MESSAGE_2_PROMPT, `Message number \"${ solution.num2 }\", I'm going to search it`);
-            return await step.endDialog(); 
-        }
-    }
-    async promptTool(step) {
-        const solution = await this.userSolution.get(step.context, {});
-        solution.num1 = step.result;
-        if (solution.num1.value === 'no') {
-        return await step.prompt(TOOL_PROMPT, `What tool did you use?`);
-        }
-    }  
-    async promptOperation(step) {
-        const solution = await this.userSolution.get(step.context, {});
-        solution.tool = step.result;
-        return await step.prompt(OPERATION_PROMPT, `What step ?hatdfgdfgdfgusing?`);
-    }
-    // This step captures the user's name, then prompts whether or not to collect an age.
-    async displayIssue(step) {
-        const solution = await this.userSolution.get(step.context, {});
-        await step.context.sendActivity(`Your name is ${ solution.tool } and you are ${ solution.oper } years old.`);
-        return await step.endDialog();
     }
 }
 
