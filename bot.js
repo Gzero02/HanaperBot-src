@@ -8,6 +8,8 @@ const { ActivityTypes, CardFactory } = require('botbuilder');
 const { LuisRecognizer } = require('botbuilder-ai');
 //const { DialogSet, DialogTurnStatus } = require('botbuilder-dialogs');
 const { ChoicePrompt, DialogSet, DialogTurnStatus, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+//const { QnAMaker, QnAMakerEndpoint, QnAMakerOptions } = require('botbuilder-ai'); gzero
+
 
 const TEXT_PROMPT = 'textPrompt';
 const MAIN_DIALOG = 'mainDialog';
@@ -15,6 +17,7 @@ const MAIN_DIALOG = 'mainDialog';
 const { UserProfile } = require('./dialogs/greeting/userProfile');
 const { GreetingDialog } = require('./dialogs/greeting');
 const { WelcomeCard } = require('./dialogs/welcome');
+const { Solution1Card } = require('./dialogs/solution1');
 
 const GREETING_DIALOG = 'greetingDialog';
 const DIALOG_STATE_PROPERTY = 'dialogState';
@@ -38,6 +41,8 @@ const TOOL_PROMPT = 'tool_prompt';
 const SOLUTION_MESSAGE_C_PROMPT = 'confirm_prompt';
 const SOLUTION_MESSAGE_1_PROMPT = 'message1_prompt';
 const SOLUTION_MESSAGE_2_PROMPT = 'message2_prompt';
+const SOLUTION_MESSAGE_C2_PROMPT = 'confirm2_prompt';
+const SOLUTION_MESSAGE_C3_PROMPT = 'confirm3_prompt';
 
 const USER_NAME_ENTITIES = ['userName', 'userName_patternAny'];
 const USER_LOCATION_ENTITIES = ['userLocation', 'userLocation_patternAny'];
@@ -63,10 +68,12 @@ class BasicBot {
      * @param {UserState} userState property accessor
      * @param {BotConfiguration} botConfig contents of the .bot file
      */
+    
     constructor(conversationState, userState, botConfig) {
         if (!conversationState) throw new Error('Missing parameter.  conversationState is required');
         if (!userState) throw new Error('Missing parameter.  userState is required');
         if (!botConfig) throw new Error('Missing parameter.  botConfig is required');
+        //this.qnaMaker = new BasicBot(endpoint, qnaOptions);
 
         // Add the LUIS recognizer.
         const luisConfig = botConfig.findServiceByNameOrId(LUIS_CONFIGURATION);
@@ -95,12 +102,18 @@ class BasicBot {
         this.dialogs.add(new TextPrompt(SOLUTION_MESSAGE_1_PROMPT));
         this.dialogs.add(new TextPrompt(SOLUTION_MESSAGE_2_PROMPT));
         this.dialogs.add(new ChoicePrompt(SOLUTION_MESSAGE_C_PROMPT));
+        this.dialogs.add(new ChoicePrompt(SOLUTION_MESSAGE_C2_PROMPT));
+        this.dialogs.add(new ChoicePrompt(SOLUTION_MESSAGE_C3_PROMPT));
         this.dialogs.add(new WaterfallDialog(SOLUTION_ISSUE, [
             this.promptMessageNum1.bind(this),
-            this.promptTool.bind(this),
-            this.promptOperation.bind(this),
             this.promptMessageNum2.bind(this),
-            this.promptMessageNum3.bind(this)
+            this.promptMessageNum3.bind(this),
+            this.promptMessageNum4.bind(this),
+            this.promptMessageNum5.bind(this),
+            this.promptMessageNum6.bind(this)
+            //this.promptTool.bind(this),
+            //this.promptOperation.bind(this)
+            //this.displayIssue.bind(this)
             
         ]));
 
@@ -128,7 +141,20 @@ class BasicBot {
         // see https://aka.ms/about-bot-activity-message to learn more about the message and other activity types
         if (context.activity.type === ActivityTypes.Message) {
             let dialogResult;
+/*
             // Create a dialog context
+            const qnaResults = await this.qnaMaker.generateAnswer(turnContext.activity.text);
+            // If an answer was received from QnA Maker, send the answer back to the user.
+            if (qnaResults[0]) {
+                await turnContext.sendActivity(qnaResults[0].answer);
+
+            // If no answers were returned from QnA Maker, reply with help.
+            } else {
+                await turnContext.sendActivity('No QnA Maker answers were found. This example uses a QnA Maker Knowledge Base that focuses on smart light bulbs. To see QnA Maker in action, ask the bot questions like "Why won\'t it turn on?" or "I need help."');
+            }
+            // If the Activity is a ConversationUpdate, send a greeting message to the user.
+        
+    */
             const dc = await this.dialogs.createContext(context);
 
             // Perform a call to LUIS to retrieve results for the current activity message.
@@ -310,6 +336,31 @@ class BasicBot {
             return await step.endDialog(); 
         }
     }
+    async promptMessageNum4(step) {
+        const solution = await this.userSolution.get(step.context, {});
+        const solution1Card = CardFactory.adaptiveCard(Solution1Card);
+        await step.context.sendActivity({ attachments: [solution1Card] });
+        return await step.prompt(SOLUTION_MESSAGE_C2_PROMPT, `Is it helpful to solve your issue? \n Your feedback makes me better!`, [`yes`, `no`]);
+    }
+    async promptMessageNum5(step) {
+        const solution = await this.userSolution.get(step.context, {});
+        solution.num3 = step.result;
+        if (step.result && solution.num3.value === 'no') {
+            return await step.prompt(SOLUTION_MESSAGE_C3_PROMPT, `Do you want me to make an ISSUE Case, which will be submitted to Cadence Support Office?`, ['yes', 'no']);
+        } else { 
+            return await step.context.sendActivity(`Thanks for your feedback!!`);
+        }
+    }
+    async promptMessageNum6(step) {
+        const solution = await this.userSolution.get(step.context, {});
+        solution.num4 = step.result;
+        if (solution.num4.value === 'yes') {
+            return await step.context.sendActivity(`Done! Submitted your Issue, \nCadence engineer will contact you!!`);
+        } else { 
+            return await step.context.sendActivity(`Thanks, Do you have another issue?`);
+        }
+    }
+    /*
     async promptTool(step) {
         const solution = await this.userSolution.get(step.context, {});
         solution.num1 = step.result;
@@ -320,14 +371,18 @@ class BasicBot {
     async promptOperation(step) {
         const solution = await this.userSolution.get(step.context, {});
         solution.tool = step.result;
-        return await step.prompt(OPERATION_PROMPT, `What step ?hatdfgdfgdfgusing?`);
+        if (solution.tool && solution.num1.value === 'no') {
+            return await step.prompt(OPERATION_PROMPT, `What step ?hatdfgdfgdfgusing?`);
+        }
     }
     // This step captures the user's name, then prompts whether or not to collect an age.
+    
     async displayIssue(step) {
         const solution = await this.userSolution.get(step.context, {});
         await step.context.sendActivity(`Your name is ${ solution.tool } and you are ${ solution.oper } years old.`);
         return await step.endDialog();
     }
+    */
 }
 
 module.exports.BasicBot = BasicBot;

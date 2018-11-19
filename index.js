@@ -6,7 +6,6 @@
 // Import required pckages
 const path = require('path');
 const restify = require('restify');
-
 // Import required bot services. See https://aka.ms/bot-services to learn more about the different parts of a bot.
 const { BotFrameworkAdapter, MemoryStorage, ConversationState, UserState } = require('botbuilder');
 // Import required bot configuration.
@@ -44,6 +43,21 @@ const BOT_CONFIGURATION = (process.env.NODE_ENV || DEV_ENVIRONMENT);
 // Get bot endpoint configuration by service name
 const endpointConfig = botConfig.findServiceByNameOrId(BOT_CONFIGURATION);
 
+/*
+// QnA Maker service name as specified in .bot file.
+const QNA_CONFIGURATION = 'HanaperKB';
+
+// Get endpoint and QnA Maker configurations by service name.
+const qnaConfig = botConfig.findServiceByNameOrId(QNA_CONFIGURATION);
+
+// Map the contents to the required format for `QnAMaker`.
+const qnaEndpointSettings = {
+    knowledgeBaseId: qnaConfig.kbId,
+    endpointKey: qnaConfig.endpointKey,
+    host: qnaConfig.hostname
+};
+gzero
+*/
 // Create adapter. 
 // See https://aka.ms/about-bot-adapter to learn more about .bot file its use and bot configuration .
 const adapter = new BotFrameworkAdapter({
@@ -95,6 +109,7 @@ userState = new UserState(memoryStorage);
 let bot;
 try {
     bot = new BasicBot(conversationState, userState, botConfig);
+    //bot = new BasicBot(conversationState, userState, botConfig, qnaEndpointSettings, {});
 } catch (err) {
     console.error(`[botInitializationError]: ${ err }`);
     process.exit();
@@ -110,9 +125,7 @@ server.listen(process.env.port || process.env.PORT || 3978, function() {
 
 // Listen for incoming activities and route them to your bot main dialog.
 server.post('/api/messages', (req, res) => {
-    // Route received a request to adapter for processing
     adapter.processActivity(req, res, async (turnContext) => {
-        // route to bot activity handler.
         await bot.onTurn(turnContext);
     });
 });
