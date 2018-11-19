@@ -1,0 +1,38 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.0",
+  "body": [
+    {
+      "type": "TextBlock",
+      "spacing": "medium",
+      "size": "default",
+      "weight": "bolder",
+      "text": "I found below solutions!",
+      "wrap": true,
+      "maxLines": 0
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Problems to export CDL",
+      "url": "https://community.cadence.com/cadence_technology_forums/f/custom-ic-design/19618/problems-to-export-cdl"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "Unable to export CDL file",
+      "url": "https://community.cadence.com/cadence_technology_forums/f/custom-ic-design/16476/unable-to-export-cdl-file"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "No CDL out form when I try to export a CDL Netlist",
+      "url": "https://www.edaboard.com/showthread.php?256374-No-CDL-out-form-when-I-try-to-export-a-CDL-Netlist-IC6-1-4-CADENCE"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "Export Cdl",
+      "url": "https://search.edaboard.com/export-cdl.html"
+    }
+  ]
+}

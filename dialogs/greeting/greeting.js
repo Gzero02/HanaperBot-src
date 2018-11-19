@@ -116,7 +116,7 @@ class Greeting extends ComponentDialog {
             await this.userProfileAccessor.set(step.context, userProfile);
         }
         if (!userProfile.city) {
-            return await step.prompt(CITY_PROMPT, `Hello ${ userProfile.name }, what city do you live in?`);
+            return await step.prompt(CITY_PROMPT, `Hello ${ userProfile.name }, where do you work?`);
         } else {
             return await step.next();
         }
@@ -177,7 +177,11 @@ class Greeting extends ComponentDialog {
     async greetUser(step) {
         const userProfile = await this.userProfileAccessor.get(step.context);
         // Display to the user their profile information and end dialog
-        await step.context.sendActivity(`Hi ${ userProfile.name }, from ${ userProfile.city }, nice to meet you!`);
+        if ( userProfile.city == "Heaven") {
+            await step.context.sendActivity(`${ userProfile.city } ?  Seriously??`);
+        } else {
+            await step.context.sendActivity(`Hi ${ userProfile.name }, from ${ userProfile.city }, nice to meet you!`);
+        }
         return await step.endDialog();
     }
 }
