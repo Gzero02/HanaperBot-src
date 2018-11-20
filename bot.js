@@ -6,13 +6,13 @@
 // Import required Bot Builder
 const { ActivityTypes, CardFactory } = require('botbuilder');
 const { LuisRecognizer } = require('botbuilder-ai');
-//const { DialogSet, DialogTurnStatus } = require('botbuilder-dialogs');
 const { ChoicePrompt, DialogSet, DialogTurnStatus, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
-//const { QnAMaker, QnAMakerEndpoint, QnAMakerOptions } = require('botbuilder-ai'); gzero
 
 
-const TEXT_PROMPT = 'textPrompt';
-const MAIN_DIALOG = 'mainDialog';
+// GET https://www.googleapis.com/customsearch/v1?key=AIzaSyA0vPv-yQ-olzbGZU9TfaDGVmVOAcOXzxk&cx=001289876643541600184:wxrmzurjssa&q=검색어
+
+//const TEXT_PROMPT = 'textPrompt';
+//const MAIN_DIALOG = 'mainDialog';
 
 const { UserProfile } = require('./dialogs/greeting/userProfile');
 const { GreetingDialog } = require('./dialogs/greeting');
@@ -27,12 +27,15 @@ const LUIS_CONFIGURATION = 'BasicBotLuisApplication';
 
 // Supported LUIS Intents.
 const GREETING_INTENT = 'Greeting';
+const WELCOME_INTENT = 'welcome';
 const CANCEL_INTENT = 'Cancel';
 const HELP_INTENT = 'Help';
 const NONE_INTENT = 'None';
 
 const CADENCE_SOLUTION = 'Cadence_Solution';
 const CADENCE_TIP = 'Cadence_Tips';
+const CADENCE_ENTERTAINER = 'Entertainer';
+const ENTERTAINER_FALL = 'Entertainer_fall';
 
 const SOLUTION_ISSUE = 'solution_issue';
 const SOLUTION_ISSUE_PROPERTY = 'solution';
@@ -111,11 +114,13 @@ class BasicBot {
             this.promptMessageNum4.bind(this),
             this.promptMessageNum5.bind(this),
             this.promptMessageNum6.bind(this)
-            //this.promptTool.bind(this),
-            //this.promptOperation.bind(this)
-            //this.displayIssue.bind(this)
-            
         ]));
+        this.dialogs.add(new WaterfallDialog(ENTERTAINER_FALL, [
+            this.promptMessageNum7.bind(this),
+            this.promptMessageNum8.bind(this),
+            this.promptMessageNum9.bind(this)
+        ]));
+
 
 /*        
         
@@ -187,6 +192,10 @@ class BasicBot {
                 case DialogTurnStatus.empty:
                     // Determine what we should do based on the top intent from LUIS.
                     switch (topIntent) {
+                    case WELCOME_INTENT:
+                        const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
+                        await context.sendActivity({ attachments: [welcomeCard] });
+                        break;
                     case GREETING_INTENT:
                         await dc.beginDialog(GREETING_DIALOG);
                         break;
@@ -196,19 +205,19 @@ class BasicBot {
                         Solution_result = JSON.stringify(results);
                         //await context.sendActivity(`"Greetings from sample message ${ Solution_result}.`);
                         await dc.beginDialog(SOLUTION_ISSUE);
-
                         //await context.sendActivity("Greetings from sample message.");
                        // await dc.context.sendActivity(`Oh~ You got an ${JSON.stringify(results.entities.Cadence_Messages[0])} !! 
                        // \n Do you have the ${JSON.stringify( results.entities.Cadence_Messages[0] )} number?`);
-
-
                         //await dc.context.sendActivity(`Solution intent found, entities included:\n ${JSON.stringify(results.entities)}`);
-                        
+                        break;
+                    case CADENCE_ENTERTAINER:
+                        await dc.beginDialog(ENTERTAINER_FALL);
                         break;
                     case CADENCE_TIP: 
                         await dc.context.sendActivity(`Tip Line 1st `);
                         await dc.context.sendActivity(`tip intent found, entities included:\n ${JSON.stringify(results.entities)}`);
                         break;
+
 
                     case NONE_INTENT:
                     default:
@@ -318,8 +327,7 @@ class BasicBot {
         }
     }
     async promptMessageNum1(step) {
-        //await this.userSolution.set(step.context, solution);
-        return await step.prompt(SOLUTION_MESSAGE_C_PROMPT, `Oh~ I see , \n Do you know the Error specific number?`, ['yes', 'no']);
+        return await step.prompt(SOLUTION_MESSAGE_C_PROMPT, `Oh~ I see, \n Do you know the Error specific number?`, ['yes', 'no']);
     }
     async promptMessageNum2(step) {
         const solution = await this.userSolution.get(step.context, {});
@@ -359,6 +367,20 @@ class BasicBot {
         } else { 
             return await step.context.sendActivity(`Thanks, Do you have another issue?`);
         }
+        return await step.endDialog();
+    }
+    async promptMessageNum7(step) {
+        //await this.userSolution.set(step.context, solution);
+        await step.context.sendActivity(`I am Hanaper Bot!! `);
+        return await step.context.sendActivity(`As you watched, I was born at Korea office for Hackaton project
+        And assist your design w/ Cadence tools. Just ask whatever you want`);
+    }
+    async promptMessageNum8(step) {
+        await step.context.sendActivity(`Ah~, you mean her, do you want to know her?`);
+    }
+    async promptMessageNum9(step) {
+        await step.context.sendActivity({ attachments: [this.createThumbnailCard()] });
+        return await step.context.sendActivity(`She is so beautiful, right?`);
     }
     /*
     async promptTool(step) {
@@ -383,6 +405,25 @@ class BasicBot {
         return await step.endDialog();
     }
     */
+    
+ 
+
+    createThumbnailCard() {
+        return CardFactory.thumbnailCard(
+            'Han Hyo-joo',
+            [{ url: 'https://www.asiancrush.com/wp-content/uploads/2017/05/han-hyo-joo.jpg' }],
+            [{
+                type: 'openUrl',
+                title: 'More Information',
+                value: 'https://en.wikipedia.org/wiki/Han_Hyo-joo'
+            }],
+            {
+                subtitle: 'South Korean film actress',
+                text: 'Han Hyo-joo is a South Korean film and television actress. She is best known for her leading roles in television drama series: Spring Waltz; Brilliant Legacy; Dong Yi and W; as well as the film Cold Eyes, for which she won Best Actress at the 34th Blue Dragon Film Awards, and for the star-studed film, Beauty Inside'
+            }
+        );
+    }
+
 }
 
 module.exports.BasicBot = BasicBot;

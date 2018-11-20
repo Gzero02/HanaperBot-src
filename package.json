@@ -17,6 +17,8 @@
         "botbuilder-dialogs": "^4.1.5",
         "botframework-config": "^4.0.6",
         "dotenv": "^6.0.0",
+        "fetch": "^1.1.0",
+        "jQuery": "^1.7.4",
         "restify": "^6.3.4"
     },
     "devDependencies": {
